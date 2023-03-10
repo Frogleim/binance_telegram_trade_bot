@@ -1,0 +1,6 @@
+LOGIN, TRADERS = range(2)
+TOKEN = "5811589868:AAElvx1nnMo5vaPWY-J2tYQ2YGL5TSv158A"
+GROUP_ID = "-946724394"
+ADMIN_ID = "5517438705"
+bybit_api_key = "DsmIAvFH0TrxVa3ZOd"
+bybit_api_secret = "4lgjOm9CfZs00WQyH5jdC87WYC2Dy0KtqBBp"
