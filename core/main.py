@@ -11,24 +11,27 @@ urls = []
 
 def get_traders(arg):
     args_json = json.dumps([arg])
-    result = subprocess.check_output(['node', 'get_traders.js', args_json])
+    result = subprocess.check_output(['node', './core/get_traders.js', args_json])
     print(result.decode('utf-8'))
 
 
-def read():
+def read(trader_type):
+    # trader_type = "DELIVERY"
+    get_traders(trader_type)
     file = open("response.json", encoding="utf8")
     data = json.load(file)
     return data["data"][0:11]
 
 
-def get_trades():
+def get_trades(trader_type):
     global urls
-    res = read()
+    res = read(trader_type)
     for users_id in res:
         user_id = users_id["encryptedUid"]
         base_url = f"https://www.binance.com/en/futures-activity/leaderboard/user/um?encryptedUid={user_id}"
         print(base_url)
         urls.append(base_url)
+    return urls
 
 
 class GetData:
@@ -98,16 +101,16 @@ class GetData:
                                                          f"2]/div/div[ "
                                                          f"2]/div/div/div/div/table/tbody/tr[{count}]/td[6]")
 
-                        self.data_dict["username"] = username.text
-                        self.data_dict["Symbol"] = symbol.text
-                        self.data_dict["Direction"] = direction.text
-                        self.data_dict["Leverage"] = leverage.text
-                        self.data_dict["size"] = size.text
-                        self.data_dict["Entry Price"] = entry_price.text
-                        self.data_dict["PNL"] = pnl.text
-                        self.data_dict["ROE%"] = roe.text
-                        self.data_dict["Time"] = times.text
-                        self.final_data.append(self.data_dict)
+                        d = {
+                            "username": username.text,
+                            "Symbol": symbol.text,
+                            "Direction": direction.text,
+                            "Leverage": leverage.text,
+                            "size": size.text,
+                            "Entry price": entry_price.text,
+                        }
+
+                        self.final_data.append(d)
                         print(
                             f"User: {username.text}| Symbol: {symbol.text} | Direction: {direction.text}| "
                             f"Leverage: {leverage.text} | "
@@ -122,9 +125,14 @@ class GetData:
             json.dump(self.final_data, save_file)
         print("Save successfully")
 
+    def run_all(self):
+        self.get_data()
+        self.save_data()
+
 
 if __name__ == "__main__":
-    trader_type = "DELIVERY"
+    import sys, os
+
     get_trades()
     trades_data = GetData(urls_data=urls)
     trades_data.get_data()

@@ -1,7 +1,0 @@
-{
-    "type": "module",
-    "main": "./src/index.js",
-    "scripts": {
-      "start": "node --experimental-modules ./src/index.js"  
-    }
-  }

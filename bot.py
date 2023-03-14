@@ -1,92 +1,41 @@
 import logging
-import telegram
-from telegram import ReplyKeyboardMarkup, Bot
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, \
-    Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+import subprocess
 import time
-from config import LOGIN, TRADERS, TOKEN, GROUP_ID, ADMIN_ID
-import pandas as pd
-from core import read_json
+import json
+from telegram import Update, ForceReply, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, \
+    CallbackQueryHandler
+from core.read_json import read_trades
 
-class Bots:
-    def __init__(self):
-        logging.basicConfig(
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
-        self.users_data = {}
-        self.updater = Updater(TOKEN)
-        self.users_lst = []
+API_TOKEN = '5811589868:AAElvx1nnMo5vaPWY-J2tYQ2YGL5TSv158A'
 
-    def start(self, update, context):
-        """Send a message when the command /start is issued."""
-        user_id = update.message.from_user.id
-        username = update.message.chat.first_name
-        chat_id = update.effective_chat.id
-        print(chat_id)
-        # if user_id not in self.users_data:
-        #     self.users_data[user_id] = UserData(user_id=user_id, user_name=username)
-        #     self.users_lst.append(self.users_data[user_id])
-        #     user_info_file = pd.DataFrame(self.users_lst)
-        #     user_info_file.to_excel('users_info.xlsx')
-        # https: // t.me / binance_betting_test_bot
-        #     print(self.users_data)
-        # else:
-        #     print('UserID already')
-        keyboard = [
-            [
-                InlineKeyboardButton("LOGIN", callback_data="Այսօր"),
-            ],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        context.bot.send_message(chat_id=ADMIN_ID,  text=f'Great! No please answer the first '
-                                                                        f'question:\n\n '
-                                                                        , parse_mode='HTML')
-        return TRADERS
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
 
-    def send_traders_data(self, update, context):
-        traders_data = read_json.read()
-        for traders in traders_data:
-            print(f"Trader: {traders['nickName']}")
-            print(f"Weekly PNL: +{round(float(traders['pnl']) * 100, 4)}")
-            print(f"Weekly ROI: +{round(float(traders['roi']) * 100, 4)}")
-            context.bot.send_message(chat_id=GROUP_ID, text=f"Trader: {traders['nickName']}\n"
-                                                            f"Weekly PNL: +{round(float(traders['pnl']) * 100, 4)}\n"
-                                                            f"Weekly ROI: +{round(float(traders['roi']) * 100, 4)}"
-                                     , parse_mode='HTML')
-        return ConversationHandler.END
+START, FIRST, SECOND = range(3)
+data = []
 
 
-    def cancel(self, update, _):
-        user = update.message.from_user
-        update.message.reply_text(
-            'You subscription was canceled'
-        )
-        return ConversationHandler.END
+def start(update: Update, context: CallbackContext) -> int:
+    """Start the conversation and ask the user for input."""
+    top_traders = read_trades()
+    for trades in top_traders:
+        message = f"{trades['username']}\nSymbol: {trades['Symbol']}\nDirection: {trades['Direction']}" \
+                  f"\nLeverage: {trades['Leverage']}\nEntry price: {trades['Entry price']}"
 
-    def error(self, update, context):
-        """Log Errors caused by Updates."""
-        self.logger.warning('Update "%s" caused error "%s"', update, context.error)
-
-    def run(self):
-        """Start the bot."""
-        dp = self.updater.dispatcher
-        conv_handler = ConversationHandler(
-            entry_points=[CommandHandler("start", self.start)],
-
-            states={
-                TRADERS: [MessageHandler(Filters.text, self.send_traders_data)],
-            },
-            fallbacks=[CommandHandler('cancel', self.cancel)]
-        )
-        dp.add_handler(conv_handler)
-        dp.add_error_handler(self.error)
-
-        self.updater.start_polling()
-        self.updater.idle()
+        context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+        time.sleep(1)
 
 
-if __name__ == "__main__":
-    my_bot = Bots()
-    my_bot.run()
+def cancel(update: Update, context: CallbackContext) -> int:
+    """End the conversation."""
+    update.message.reply_text(
+        'Okay, bye! Let me know if you need anything else.'
+    )
+
+
+if __name__ == '__main__':
+    updater = Updater(API_TOKEN, use_context=True)
+    updater.dispatcher.add_handler(CommandHandler("start", start))
+    updater.start_polling()
+    updater.idle()
