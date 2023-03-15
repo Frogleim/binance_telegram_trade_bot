@@ -7,7 +7,7 @@ import os
 import json
 from core.read_json import read_traders
 
-API_TOKEN = '6163015498:AAEb03qyxgZK_eFhaLO9egAUGVfZxjMnkWg'
+API_TOKEN = ''
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -32,17 +32,6 @@ def start(update: Update, context: CallbackContext):
 
     return FIRST
 
-
-# def return_to_main_menu(update, context):
-#     print("returning...")
-#     """Return user to main menu."""
-#     query = update.callback_query
-#     query.answer()
-#     reply_markup = get_main_menu_keyboard()
-#     context.bot.send_message(chat_id=update.effective_chat.id,
-#                              text="Returning to main menu...",
-#                              reply_markup=reply_markup)
-#     return MAIN_MENU
 
 def first(update: Update, context: CallbackContext):
     """Ask the user for their age."""
@@ -79,7 +68,7 @@ def first(update: Update, context: CallbackContext):
             [
                 InlineKeyboardButton("Mane Menu", callback_data="menu"),
             ],
-            ]
+        ]
         reply_markup_1 = InlineKeyboardMarkup(keyboard_1)
 
         context.bot.send_message(chat_id=update.effective_chat.id, text="Select the traders you want to follow:",
@@ -95,10 +84,10 @@ followed_trader_data = []
 
 def button_callback(update, context):
     query = update.callback_query
-    print(query.data)
     query.answer()
     users_data = {}
     user_id = update.effective_user.id
+
     global followed_trader_data
 
     if '1' in query.data:
@@ -111,7 +100,6 @@ def button_callback(update, context):
             button_text = followed_trader
 
         users_data[user_id] = {"followed_traders": followed_trader_data}
-        print(followed_trader_data)
 
         traders = read_traders()
         keyboard = []
@@ -174,11 +162,17 @@ def button_callback(update, context):
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_reply_markup(reply_markup=reply_markup)
+        users_data[user_id] = {"followed_traders": followed_trader_data}
+        with open(f'./data/following/{user_id}_followed_traders.json', 'w') as f:
+            json.dump(users_data, f)
+        file = open(f'./data/{user_id}.json')
+        data = json.load(file)
+        api_key = data[str(user_id)]['api_key']
+        api_secret = data[str(user_id)]['api_secret']
+        make_order(api_key, api_secret, user_id)
         return MAIN_MENU
 
-    users_data[user_id] = {"followed_traders": followed_trader_data}
-    with open(f'./data/following/{user_id}_followed_traders.json', 'w') as f:
-        json.dump(users_data, f)
+
 
 
 def main_menu(update: Update, context: CallbackContext):
@@ -222,38 +216,37 @@ def connect_to_binance(update: Update, context: CallbackContext):
     return MAIN_MENU
 
 
-def make_order(api_key, api_secret):
+def make_order(api_key, api_secret, user_id):
     api_key = api_key
     api_secret = api_secret
 
     client = Client(api_key, api_secret)
     traders_username = None
-    # Define order parameters
-    file = open("./users_follows.json", encoding="utf8")
+    file = open(f"./data/following/{user_id}_followed_traders.json", encoding="utf8")
     data = json.load(file)
-    for username in data:
-        traders_username = username["followed trader"]
-        print(traders_username)
-    all_trades = open("./core/Trades.json", encoding="utf8")
-    all_data = json.load(all_trades)
-    for all_trade in all_data:
-        if traders_username == all_trade["username"]:
-            print(all_trade)
-            symbol = all_trade["Symbol"].split()[0]
-            if all_trade["Direction"] == "Long":
-                side = Client.SIDE_BUY
-            else:
-                side = Client.SIDE_SELL
-            type = Client.ORDER_TYPE_MARKET
-            quantity = 1
-            leverage = all_trade["Leverage"]
-            leverage_without_x = leverage.replace("x", "")
-            leverage = int(leverage_without_x)
+    for username in data[str(user_id)]['followed_traders']:
+        # traders_username = username["followed trader"]
+        print(username)
+        all_trades = open("./core/Trades.json", encoding="utf8")
+        all_data = json.load(all_trades)
+        for all_trade in all_data:
+            if username == all_trade["username"]:
+                print(all_trade)
+                symbol = all_trade["Symbol"].split()[0]
+                if all_trade["Direction"] == "Long":
+                    side = Client.SIDE_BUY
+                else:
+                    side = Client.SIDE_SELL
+                type = Client.ORDER_TYPE_MARKET
+                quantity = 1
+                leverage = all_trade["Leverage"]
+                leverage_without_x = leverage.replace("x", "")
+                leverage = int(leverage_without_x)
 
-            # Place order
-            order = client.futures_create_order(symbol=symbol, side=side, type=type, quantity=quantity,
-                                                leverage=leverage)
-            print(order)
+                # Place order
+                order = client.futures_create_order(symbol=symbol, side=side, type=type, quantity=quantity,
+                                                    leverage=leverage)
+                print(order)
 
 
 def cancel(update: Update, context: CallbackContext) -> int:

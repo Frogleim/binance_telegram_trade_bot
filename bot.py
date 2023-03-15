@@ -7,7 +7,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
     CallbackQueryHandler
 from core.read_json import read_trades
 
-API_TOKEN = '5811589868:AAElvx1nnMo5vaPWY-J2tYQ2YGL5TSv158A'
+API_TOKEN = ''
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
