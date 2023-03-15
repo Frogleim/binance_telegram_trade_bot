@@ -33,6 +33,17 @@ def start(update: Update, context: CallbackContext):
     return FIRST
 
 
+# def return_to_main_menu(update, context):
+#     print("returning...")
+#     """Return user to main menu."""
+#     query = update.callback_query
+#     query.answer()
+#     reply_markup = get_main_menu_keyboard()
+#     context.bot.send_message(chat_id=update.effective_chat.id,
+#                              text="Returning to main menu...",
+#                              reply_markup=reply_markup)
+#     return MAIN_MENU
+
 def first(update: Update, context: CallbackContext):
     """Ask the user for their age."""
     query = update.callback_query
@@ -156,10 +167,18 @@ def button_callback(update, context):
                         break
 
     elif query.data == "menu":
-        return FIRST
+        keyboard = []
+        callback_data = "main_menu"
+        button_text = "Save Data"
+        keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_reply_markup(reply_markup=reply_markup)
+        return MAIN_MENU
 
     users_data[user_id] = {"followed_traders": followed_trader_data}
-    # save_user_data(user_id, users_data)
+    with open(f'./data/following/{user_id}_followed_traders.json', 'w') as f:
+        json.dump(users_data, f)
 
 
 def main_menu(update: Update, context: CallbackContext):
